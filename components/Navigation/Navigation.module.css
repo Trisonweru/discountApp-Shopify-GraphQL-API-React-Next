@@ -1,0 +1,70 @@
+.headerWrapper {
+  width: 100%;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff8e5;
+}
+.navWrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+.navWrapper > ul {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.list_item {
+  height: 50px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  list-style: none;
+  margin-right: 15px;
+}
+.list_item_active {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  height: 50px;
+  border-bottom: 2px solid #00a19d;
+  list-style: none;
+  margin-right: 15px;
+}
+.list_item_active > a {
+  color: #00a19d !important;
+}
+.list_report {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  height: 50px;
+  list-style: none;
+  margin-right: 15px;
+}
+.list_report_active {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  height: 50px;
+  border-bottom: 2px solid #00a19d;
+  list-style: none;
+  margin-right: 15px;
+}
+.list_report_active > a {
+  color: #00a19d !important;
+}
+.navWrapper > ul > li > a {
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 700;
+  color: #000;
+}
+.navWrapper > ul > li > a:hover {
+  color: #00a19d;
+}
