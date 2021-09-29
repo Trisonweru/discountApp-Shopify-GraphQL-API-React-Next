@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./Home.module.css";
-
+import { ResourcePicker } from "@shopify/app-bridge-react";
+import gql from "graphql-tag";
+import { useMutation } from "react-apollo";
+import { useRouter } from "next/dist/client/router";
 function Home() {
   const [discountSelected, setDiscountSelected] = useState("percentage");
   const [periodChecked, setPeriodChecked] = useState(true);
@@ -14,11 +17,702 @@ function Home() {
   const [handle, setHandle] = useState();
   const [name, setName] = useState();
   const [code, setCode] = useState();
-  const [discountValue, setDiscountValue] = useState(false);
+  const [discountValue, setDiscountValue] = useState();
+  const [limitValue, setLimitValue] = useState();
+  const [applyOn, setApplyOn] = useState("all");
+  //drop dublicated countries
+  const newSelectedCountryText = [...new Set(selectedCountryText)];
+  //drop dublicated countries codes
+  const newCountriesSelected = [...new Set(countriesSelected)];
+  const [collection, setCollection] = useState(false);
+  const [product, setProduct] = useState(false);
+  const [collectionIds, setCollectionIds] = useState([]);
+  const [productIds, setProductIds] = useState([]);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (applyOn === "collection") {
+      setCollection(true);
+    }
+    if (applyOn === "product") {
+      setProduct(true);
+    }
+    if (applyOn === "all") {
+      setCollection(false);
+      setProduct(false);
+    }
+  });
+
+  const date = new Date();
+  const defaultDate = date.toISOString().split("T")[0];
+  // Percentage discount GraphQL Queries
+
+  const percentageDiscountAll = gql`
+  mutation {
+    discountCodeBasicCreate(
+      basicCodeDiscount: {
+        title: "${name}"
+        startsAt: "${startsAt ? startsAt : defaultDate}"
+        endsAt: "${endsAt ? endsAt : null}"
+        usageLimit: ${limitValue ? parseInt(limitValue) : null}
+        appliesOncePerCustomer: true
+        customerSelection: { all: true }
+        code: "${code}"
+    customerGets: {
+      value: {
+        percentage:${parseFloat(discountValue)}
+      }
+      items:{all:true}
+    }}
+    ) {
+      userErrors {
+        field
+        message
+        code
+      }
+      codeDiscountNode {
+        id
+        codeDiscount {
+          ... on DiscountCodeBasic {
+            title
+            summary
+            status
+            codes(first: 10) {
+              edges {
+                node {
+                  code
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  `;
+  const percentageDiscountSelection = gql`
+  mutation {
+    discountCodeBasicCreate(
+      basicCodeDiscount: {
+        title: "${name}"
+        startsAt: "${startsAt ? startsAt : defaultDate}"
+        endsAt: "${endsAt ? endsAt : null}"
+        usageLimit: ${limitValue ? parseInt(limitValue) : null}
+        appliesOncePerCustomer: true
+        customerSelection: { all: true }
+        code: "${code}"
+    customerGets: {
+      value: {
+        percentage:${parseFloat(discountValue)}
+      },
+      items: {collections: {add: ${JSON.stringify(collectionIds)}}}
+    }}
+    ) {
+      userErrors {
+        field
+        message
+        code
+      }
+      codeDiscountNode {
+        id
+        codeDiscount {
+          ... on DiscountCodeBasic {
+            title
+            summary
+            status
+            codes(first: 10) {
+              edges {
+                node {
+                  code
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  `;
+
+  const percentageDiscountProduct = gql`
+  mutation {
+    discountCodeBasicCreate(
+      basicCodeDiscount: {
+        title: "${name}"
+        startsAt: "${startsAt ? startsAt : defaultDate}"
+        endsAt: "${endsAt ? endsAt : null}"
+        usageLimit: ${limitValue ? parseInt(limitValue) : null}
+        appliesOncePerCustomer: true
+        customerSelection: { all: true }
+        code: "${code}"
+    customerGets: {
+      value: {
+        percentage:${parseFloat(discountValue)}
+      },
+      items: {products: {productsToAdd: ${JSON.stringify(productIds)}}}
+    }}
+    ) {
+      userErrors {
+        field
+        message
+        code
+      }
+      codeDiscountNode {
+        id
+        codeDiscount {
+          ... on DiscountCodeBasic {
+            title
+            summary
+            status
+            codes(first: 10) {
+              edges {
+                node {
+                  code
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  `;
+
+  const dollarDiscountAll = gql`
+  mutation {
+    discountCodeBasicCreate(
+      basicCodeDiscount: {
+        title: "${name}"
+        startsAt: "${startsAt ? startsAt : defaultDate}"
+        endsAt: "${endsAt ? endsAt : null}"
+        usageLimit: ${limitValue ? parseInt(limitValue) : null}
+        appliesOncePerCustomer: true
+        customerSelection: { all: true }
+        code: "${code}"
+    customerGets: {
+      value: {
+        discountAmount:{amount:${parseFloat(
+          discountValue
+        )}, appliesOnEachItem:false}
+      }
+      items:{all:true}
+    }}
+    ) {
+      userErrors {
+        field
+        message
+        code
+      }
+      codeDiscountNode {
+        id
+        codeDiscount {
+          ... on DiscountCodeBasic {
+            title
+            summary
+            status
+            codes(first: 10) {
+              edges {
+                node {
+                  code
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  `;
+  const dollarDiscountCollection = gql`
+  mutation {
+    discountCodeBasicCreate(
+      basicCodeDiscount: {
+        title: "${name}"
+        startsAt: "${startsAt ? startsAt : defaultDate}"
+        endsAt: "${endsAt ? endsAt : null}"
+        usageLimit: ${limitValue ? parseInt(limitValue) : null}
+        appliesOncePerCustomer: true
+        customerSelection: { all: true }
+        code: "${code}"
+    customerGets: {
+      value: {
+        discountAmount:{amount:${parseFloat(
+          discountValue
+        )}, appliesOnEachItem:false}
+      }
+      items:{collections: {add: ${JSON.stringify(collectionIds)}}}
+    }}
+    ) {
+      userErrors {
+        field
+        message
+        code
+      }
+      codeDiscountNode {
+        id
+        codeDiscount {
+          ... on DiscountCodeBasic {
+            title
+            summary
+            status
+            codes(first: 10) {
+              edges {
+                node {
+                  code
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  `;
+  const dollarDiscountProduct = gql`
+  mutation {
+    discountCodeBasicCreate(
+      basicCodeDiscount: {
+        title: "${name}"
+        startsAt: "${startsAt ? startsAt : defaultDate}"
+        endsAt: "${endsAt ? endsAt : null}"
+        usageLimit: ${limitValue ? parseInt(limitValue) : null}
+        appliesOncePerCustomer: true
+        customerSelection: { all: true }
+        code: "${code}"
+    customerGets: {
+      value: {
+        discountAmount:{amount:${parseFloat(
+          discountValue
+        )}, appliesOnEachItem:false}
+      }
+      items:{products: {productsToAdd: ${JSON.stringify(productIds)}}}
+    }}
+    ) {
+      userErrors {
+        field
+        message
+        code
+      }
+      codeDiscountNode {
+        id
+        codeDiscount {
+          ... on DiscountCodeBasic {
+            title
+            summary
+            status
+            codes(first: 10) {
+              edges {
+                node {
+                  code
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  `;
+  //dollar amount with minimun requirements
+  const dollarDiscountMinimunAll = gql`
+  mutation {
+    discountCodeBasicCreate(
+      basicCodeDiscount: {
+        title: "${name}"
+        startsAt: "${startsAt ? startsAt : defaultDate}"
+        endsAt: "${endsAt ? endsAt : null}"
+        usageLimit: ${limitValue ? parseInt(limitValue) : null}
+        appliesOncePerCustomer: true
+        customerSelection: { all: true }
+        code: "${code}"
+    customerGets: {
+      value: {
+        discountAmount:{amount:${parseFloat(
+          discountValue
+        )}, appliesOnEachItem:false}
+      }
+      items:{all:true}
+    }
+    minimumRequirement:{subtotal:{greaterThanOrEqualToSubtotal:50}}
+  }
+   
+    ) {
+      userErrors {
+        field
+        message
+        code
+      }
+      codeDiscountNode {
+        id
+        codeDiscount {
+          ... on DiscountCodeBasic {
+            title
+            summary
+            status
+            codes(first: 10) {
+              edges {
+                node {
+                  code
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  `;
+  const dollarDiscountMinimunCollection = gql`
+  mutation {
+    discountCodeBasicCreate(
+      basicCodeDiscount: {
+        title: "${name}"
+        startsAt: "${startsAt ? startsAt : defaultDate}"
+        endsAt: "${endsAt ? endsAt : null}"
+        usageLimit: ${limitValue ? parseInt(limitValue) : null}
+        appliesOncePerCustomer: true
+        customerSelection: { all: true }
+        code: "${code}"
+    customerGets: {
+      value: {
+        discountAmount:{amount:${parseFloat(
+          discountValue
+        )}, appliesOnEachItem:false}
+      }
+      items:{collections: {add: ${JSON.stringify(collectionIds)}}}
+    }
+    minimumRequirement:{subtotal:{greaterThanOrEqualToSubtotal:50}}
+  }
+   
+    ) {
+      userErrors {
+        field
+        message
+        code
+      }
+      codeDiscountNode {
+        id
+        codeDiscount {
+          ... on DiscountCodeBasic {
+            title
+            summary
+            status
+            codes(first: 10) {
+              edges {
+                node {
+                  code
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  `;
+
+  const dollarDiscountMinimunProduct = gql`
+  mutation {
+    discountCodeBasicCreate(
+      basicCodeDiscount: {
+        title: "${name}"
+        startsAt: "${startsAt ? startsAt : defaultDate}"
+        endsAt: "${endsAt ? endsAt : null}"
+        usageLimit: ${limitValue ? parseInt(limitValue) : null}
+        appliesOncePerCustomer: true
+        customerSelection: { all: true }
+        code: "${code}"
+    customerGets: {
+      value: {
+        discountAmount:{amount:${parseFloat(
+          discountValue
+        )}, appliesOnEachItem:false}
+      }
+      items:{products: {productsToAdd: ${JSON.stringify(productIds)}}}
+    }
+    minimumRequirement:{subtotal:{greaterThanOrEqualToSubtotal:50}}
+  }
+   
+    ) {
+      userErrors {
+        field
+        message
+        code
+      }
+      codeDiscountNode {
+        id
+        codeDiscount {
+          ... on DiscountCodeBasic {
+            title
+            summary
+            status
+            codes(first: 10) {
+              edges {
+                node {
+                  code
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  `;
+
+  //Free shipping
+  //It turns out for free shipping you need to verify the stores address.
+  const freeShippingDiscount = gql`
+  mutation {
+    discountCodeFreeShippingCreate(
+      freeShippingCodeDiscount: {
+        code: "${code}"
+        title: "${name}"
+        startsAt: "${startsAt}"
+        destination: { countries: { add: ${JSON.stringify(
+          newCountriesSelected
+        )} } }
+        customerSelection: { all: true }
+        usageLimit: ${parseInt(limitValue)}
+      }
+    ) {
+      userErrors {
+        field
+        message
+        code
+      }
+      codeDiscountNode {
+        id
+        codeDiscount {
+          __typename
+          ... on DiscountCodeFreeShipping {
+            title
+            status
+            codes(first: 10) {
+              edges {
+                node {
+                  code
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+  //Buy X and get Y
+  const buyYgetXProducts = gql`
+    mutation {
+      discountCodeBxgyCreate(
+        bxgyCodeDiscount: {
+          title: "${name}"
+          startsAt: "${startsAt}"
+          endsAt: "${endsAt}"
+          usesPerOrderLimit: ${parseFloat(limitValue)}
+          code: "${code}"
+          customerSelection: { all: true }
+          customerBuys: {
+            value: { amount: 100 }
+            items: {
+            products: {productsToAdd: ${JSON.stringify(productIds)}}
+            }
+          }
+          customerGets: {
+            value: {
+              discountOnQuantity: {
+                quantity: "1"
+                effect: { percentage:${parseFloat(discountValue)}}
+              }
+            }
+            items: {
+            products: {productsToAdd: ${JSON.stringify(productIds)}}
+            }
+          }
+        }
+      ) {
+        userErrors {
+          field
+          message
+          code
+        }
+
+        codeDiscountNode {
+          id
+
+          codeDiscount {
+            ... on DiscountCodeBxgy {
+              title
+
+              summary
+
+              status
+
+              codes(first: 100) {
+                edges {
+                  node {
+                    code
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+  const buyYgetXCollection = gql`
+    mutation {
+      discountCodeBxgyCreate(
+        bxgyCodeDiscount: {
+          title: "${name}"
+          startsAt: "${startsAt}"
+          endsAt: "${endsAt}"
+          usesPerOrderLimit: ${parseFloat(limitValue)}
+          code: "${code}"
+          customerSelection: { all: true }
+          customerBuys: {
+            value: { amount: 100 }
+            items: {
+            collections: {add: ${JSON.stringify(collectionIds)}}
+            }
+          }
+          customerGets: {
+            value: {
+              discountOnQuantity: {
+                quantity: "1"
+                effect: { percentage:${parseFloat(discountValue)}}
+              }
+            }
+            items: {
+            collections: {add: ${JSON.stringify(collectionIds)}}
+            }
+          }
+        }
+      ) {
+        userErrors {
+          field
+          message
+          code
+        }
+
+        codeDiscountNode {
+          id
+
+          codeDiscount {
+            ... on DiscountCodeBxgy {
+              title
+
+              summary
+
+              status
+
+              codes(first: 100) {
+                edges {
+                  node {
+                    code
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+  const [alertPass, setAlertPass] = useState(false);
+  const [alertFail, setAlertFail] = useState(false);
+  const [formError, setFormErrors] = useState();
+  const handleCollectionSelection = (items) => {
+    const coll = items.selection.map((item) => item.id);
+    setCollectionIds(coll);
+    setProductIds([]);
+  };
+  const handleProductSelection = (items) => {
+    const prods = items.selection.map((item) => item.id);
+    setProductIds(prods);
+    setCollectionIds([]);
+  };
+
+  const [
+    handlePercentageSubmit,
+    { data, loading, error },
+  ] = useMutation(
+    discountSelected === "percentage" && applyOn === "product"
+      ? percentageDiscountProduct
+      : discountSelected === "percentage" && applyOn === "collection"
+      ? percentageDiscountSelection
+      : discountSelected === "dollarAmount" && applyOn === "all"
+      ? dollarDiscountAll
+      : discountSelected === "dollarAmount" && applyOn === "collection"
+      ? dollarDiscountCollection
+      : discountSelected === "dollarAmount" && applyOn === "product"
+      ? dollarDiscountProduct
+      : discountSelected === "minimumAmount" && applyOn === "all"
+      ? dollarDiscountMinimunAll
+      : discountSelected === "minimumAmount" && applyOn === "collection"
+      ? dollarDiscountMinimunCollection
+      : discountSelected === "minimumAmount" && applyOn === "product"
+      ? dollarDiscountMinimunProduct
+      : discountSelected === "freeShipping"
+      ? freeShippingDiscount
+      : discountSelected === "buyxgety" && applyOn === "product"
+      ? buyYgetXProducts
+      : discountSelected === "buyxgety" && applyOn === "collection"
+      ? buyYgetXCollection
+      : percentageDiscountAll,
+    { errorPolicy: "none" }
+  );
+
+  if (error) {
+    console.log(error);
+    return (
+      <div className={styles.alertError}>
+        Error occurred while processing your request . Try Again!
+        <div>
+          <button onClick={() => router.push("/")} className={styles.submitBtn}>
+            Back home
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={styles.HomeContainer}>
-      <form>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (
+            (discountSelected === "percentage" && !startsAt) ||
+            (discountSelected === "percentage" && !endsAt) ||
+            (discountSelected === "buyxgety" && !startsAt) ||
+            (discountSelected === "buyxgety" && !endsAt) ||
+            (discountSelected === "minimumAmount" && !startsAt) ||
+            (discountSelected === "minimumAmount" && !endsAt) ||
+            (discountSelected === "dollarAmount" && !startsAt) ||
+            (discountSelected === "dollarAmount" && !endsAt)
+          ) {
+            setFormErrors(true);
+          } else {
+            handlePercentageSubmit();
+          }
+        }}
+      >
         <div className={styles.formGroup}>
+          {alertPass ? (
+            <div className={styles.alertSuccess}>Operation was successful</div>
+          ) : alertFail ? (
+            <div className={styles.alertError}>
+              Error occurred while processing your request . Try Again!
+            </div>
+          ) : formError ? (
+            <div className={styles.alertError}>
+              Start date and End date required!
+            </div>
+          ) : (
+            ""
+          )}
           <div className={styles.GroupName}>Influencer</div>
           <div className={styles.inputWrapper}>
             <label>@handle</label>
@@ -76,15 +770,15 @@ function Home() {
             </select>
           </div>
           <div className={styles.inputWrapper}>
-            <label>
+            <label className={styles.discoutTypelbl}>
               {discountSelected === "percentage"
-                ? "Percentage Discount"
+                ? "Percentage Discount (between 0.0 and 1.0)"
                 : discountSelected === "buyxgety"
-                ? "Buy Amount"
+                ? "Customer Gets"
                 : discountSelected === "dollarAmount"
                 ? "Discount Amount"
                 : discountSelected === "minimumAmount"
-                ? "Minimum Amount"
+                ? "Discount Amount"
                 : discountSelected === "freeShipping"
                 ? "Minimum Amount"
                 : ""}
@@ -125,6 +819,9 @@ function Home() {
                 <input
                   type="date"
                   name="amount"
+                  disabled={
+                    discountSelected === "freeShipping" ? "disabled" : ""
+                  }
                   placeholder="Value"
                   className={styles.formInputDate}
                   onChange={(e) => setEndssAt(e.target.value)}
@@ -139,6 +836,14 @@ function Home() {
           <input
             type="checkbox"
             name="amount"
+            disabled={
+              discountSelected === "percentage" ||
+              discountSelected === "buyxgety" ||
+              discountSelected === "dollarAmount" ||
+              discountSelected === "minimumAmount"
+                ? "disabled"
+                : ""
+            }
             defaultChecked={regionChecked}
             onChange={(e) => setRegionChecked(!regionChecked)}
             className={styles.checkBox}
@@ -147,7 +852,11 @@ function Home() {
         </div>
         {regionChecked ? (
           <div className={styles.inputWrapper}>
-            <label>Select regions</label>
+            <label>
+              {selectedCountryText.length > 0
+                ? "Selected region(s)"
+                : "Select region(s)"}
+            </label>
             <div className={styles.CountrySelect}>
               {" "}
               <select
@@ -429,11 +1138,18 @@ function Home() {
                 <option value="ZM">Zambia</option>
                 <option value="ZW">Zimbabwe</option>
               </select>
-              <div className={styles.Countries}>
-                {selectedCountryText.map((item, index) => {
-                  return <span key={index}>{`${item}, `}</span>;
-                })}
-              </div>
+              {selectedCountryText.length > 0 && (
+                <div className={styles.Countries}>
+                  {newSelectedCountryText.reverse().map((item, index) => {
+                    return (
+                      <div
+                        key={index}
+                        className={styles.country}
+                      >{`${item}`}</div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -461,11 +1177,52 @@ function Home() {
                 name="uselimit"
                 placeholder="Enter limit"
                 className={styles.formInput}
+                value={limitValue}
+                onChange={(e) => setLimitValue(e.target.value)}
               />
             </div>
           ) : (
             ""
           )}
+        </div>
+        <div className={styles.formGroup}>
+          <div className={styles.GroupName}>Discount Application</div>
+          <div className={styles.inputWrapper}>
+            <label>Apply on </label>
+            <select
+              name="applyon"
+              size="1"
+              disabled={discountSelected === "freeShipping" ? "disabled" : ""}
+              className={styles.formInput}
+              value={applyOn}
+              onChange={(e) => setApplyOn(e.target.value)}
+            >
+              <option value="all">All</option>
+              <option value="collection">Collection</option>
+              <option value="product">Product</option>
+            </select>
+            {collection ? (
+              <ResourcePicker
+                resourceType="Collection"
+                open={collection}
+                onCancel={() => setApplyOn("all")}
+                onSelection={(items) => {
+                  handleCollectionSelection(items);
+                }}
+              />
+            ) : product ? (
+              <ResourcePicker
+                resourceType="Product"
+                open={product}
+                onCancel={() => setApplyOn("all")}
+                onSelection={(products) => {
+                  handleProductSelection(products);
+                }}
+              />
+            ) : (
+              ""
+            )}
+          </div>
         </div>
         <div className={styles.submitWrapper}>
           <input
@@ -480,157 +1237,3 @@ function Home() {
 }
 
 export default Home;
-
-// import React, { useState, useCallback } from "react";
-// import {
-//   Heading,
-//   Page,
-//   FormLayout,
-//   TextField,
-//   Button,
-//   Form,
-// } from "@shopify/polaris";
-// import gql from "graphql-tag";
-// import { useMutation } from "react-apollo";
-// import { useRouter } from "next/router";
-
-// const Index = () => {
-//   const [title, setTitle] = useState("Hello");
-//   const [starts, setStarts] = useState("2021-08-17");
-//   const [ends, setEnds] = useState("2021-08-17");
-//   const [limit, setLimit] = useState("10");
-//   const [value, setValue] = useState("0.1");
-//   const [code, setCode] = useState("Discount2021");
-
-//   const router = useRouter();
-
-//   const discountQuery = gql`
-//     mutation {
-//       discountCodeBasicCreate(
-//         basicCodeDiscount: {
-//           title: "${title}"
-//           startsAt: "${starts}"
-//           endsAt: "${ends}"
-//           usageLimit: ${parseInt(limit)}
-//           appliesOncePerCustomer: true
-//           customerSelection: { all: true }
-//           code: "${code}"
-//           customerGets: {
-//             value: {
-//               percentage:${value}
-//             }
-//             items: { all: true }
-//           }
-//         }
-//       ) {
-//         userErrors {
-//           field
-//           message
-//           code
-//         }
-//         codeDiscountNode {
-//           id
-//           codeDiscount {
-//             ... on DiscountCodeBasic {
-//               title
-//               summary
-//               status
-//               codes(first: 10) {
-//                 edges {
-//                   node {
-//                     code
-//                   }
-//                 }
-//               }
-//             }
-//           }
-//         }
-//       }
-//     }
-//   `;
-//   const handleTitleChange = useCallback((value) => setTitle(value), []);
-//   const handleStartsChange = useCallback((value) => setStarts(value), []);
-//   const handleEndsChange = useCallback((value) => setEnds(value), []);
-//   const handleLimitChange = useCallback((value) => setLimit(value), []);
-//   const handleCodeChange = useCallback((value) => setCode(value), []);
-//   const handleValueChange = useCallback((value) => setValue(value), []);
-//   const [
-//     handleSubmit,
-//     { data, loading, error, called },
-//   ] = useMutation(discountQuery, { errorPolicy: "none" });
-//   if (loading) {
-//     return <div>Loading</div>;
-//   }
-//   if (error) {
-//     console.log(error.message);
-//   }
-//   let payload = { title: title, code: code };
-//   if (data) {
-//     fetch("http://127.0.0.1:5000/", {
-//       method: "POST",
-//       body: JSON.stringify(payload),
-//       header: {
-//         "Content-Type": "application/json",
-//       },
-//     })
-//       .then((res) => {
-//         res.text;
-//       })
-//       .catch((err) => {
-//         console.log(err);
-//       });
-//   }
-
-//   return (
-//     <Page>
-//       <Heading>Create a discount code</Heading>
-
-//       <Form noValidate onSubmit={handleSubmit}>
-//         <FormLayout>
-//           <TextField
-//             value={title}
-//             onChange={handleTitleChange}
-//             label="Title"
-//             type="text"
-//           />
-//           <TextField
-//             label="Starts at"
-//             onChange={handleStartsChange}
-//             value={starts}
-//             type="text"
-//           />
-//           <TextField
-//             label="Ends at"
-//             onChange={handleEndsChange}
-//             value={ends}
-//             type="text"
-//           />
-//           <TextField
-//             label="User limit"
-//             onChange={handleLimitChange}
-//             value={limit}
-//             type="text"
-//           />
-//           <TextField
-//             label="Discount Code"
-//             onChange={handleCodeChange}
-//             value={code}
-//             type="text"
-//           />
-//           <TextField
-//             label="Enter percentage value"
-//             value={value}
-//             onChange={handleValueChange}
-//             type="text"
-//           />
-
-//           <Button submit>Submit</Button>
-//         </FormLayout>
-//       </Form>
-
-//       <Heading style="margin-top:20px">Reports</Heading>
-//     </Page>
-//   );
-// };
-
-// export default Index;

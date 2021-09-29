@@ -50,10 +50,33 @@
   justify-content: flex-start;
 }
 .Countries {
-  width: 250px;
-  height: 70px;
-  overflow-y: scroll;
+  max-width: 250px;
+  height: 80px;
+  overflow: scroll;
   background: #fff;
+  padding-top: 5px;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: baseline;
+  align-items: flex-start;
+}
+.Countries::-webkit-scrollbar {
+  display: none;
+}
+.Countries {
+  scrollbar-width: none;
+}
+.country {
+  background: #569b9a;
+  padding: 5px;
+  color: #fff;
+  border-radius: 25px;
+  margin: 3px;
+  width: fit-content;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .submitWrapper {
   width: 100%;
@@ -71,4 +94,31 @@
   cursor: pointer;
   border: none;
   outline: none;
+}
+.discoutTypelbl {
+  max-width: 100px;
+}
+.alertSuccess {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #57cc99;
+  color: #fff;
+  font-size: 16px;
+  width: 400px;
+  height: 50px;
+  margin-bottom: 20px;
+  padding: 5px;
+}
+.alertError {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #911f27;
+  color: #fff;
+  font-size: 16px;
+  width: 400px;
+  height: 50px;
+  margin-bottom: 20px;
+  padding: 5px;
 }
