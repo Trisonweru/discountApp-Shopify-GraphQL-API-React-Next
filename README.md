@@ -1,9 +1,7 @@
-# Shopify App Node
+# DiscounterApp - Shopify, GraphQLAPI, REACTJS-(NEXTJS)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
-[![Build Status](https://travis-ci.com/Shopify/shopify-app-node.svg?branch=master)](https://travis-ci.com/Shopify/shopify-app-node)
-
-Boilerplate to create an embedded Shopify app made with Node, [Next.js](https://nextjs.org/), [Shopify-koa-auth](https://github.com/Shopify/quilt/tree/master/packages/koa-shopify-auth), [Polaris](https://github.com/Shopify/polaris-react), and [App Bridge React](https://shopify.dev/tools/app-bridge/react-components).
+-Discounter app is an application that helps merchants in Shopify environment to create different discounts codes for influencers.
+-Its allows creation of percentage discounts, free shipping discounts, Buy X Get Y discounts, Fixed Amount discounts and lastly, Fixed Amount with minimum requirements.
 
 ## Installation
 
