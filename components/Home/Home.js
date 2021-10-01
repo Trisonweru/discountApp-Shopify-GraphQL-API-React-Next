@@ -20,6 +20,7 @@ function Home() {
   const [discountValue, setDiscountValue] = useState();
   const [limitValue, setLimitValue] = useState();
   const [applyOn, setApplyOn] = useState("all");
+  const [customerBuys, setCustomerBuys] = useState();
   //drop dublicated countries
   const newSelectedCountryText = [...new Set(selectedCountryText)];
   //drop dublicated countries codes
@@ -28,7 +29,12 @@ function Home() {
   const [product, setProduct] = useState(false);
   const [collectionIds, setCollectionIds] = useState([]);
   const [productIds, setProductIds] = useState([]);
-
+  const [collectionBuysIds, setCollectionBuysIds] = useState([]);
+  const [productBuysIds, setProductBuysIds] = useState([]);
+  const [buyscollection, setBuysCollection] = useState(false);
+  const [buysproduct, setBuysProduct] = useState(false);
+  const [discountBuyAmount, setDiscountBuyAmount] = useState();
+  const [discountQuantity, setDiscountQuantity] = useState();
   const router = useRouter();
 
   useEffect(() => {
@@ -41,6 +47,16 @@ function Home() {
     if (applyOn === "all") {
       setCollection(false);
       setProduct(false);
+    }
+    if (customerBuys === "buysproduct") {
+      setBuysProduct(true);
+    }
+    if (customerBuys === "buyscollection") {
+      setBuysCollection(true);
+    }
+    if (customerBuys === "appy_on") {
+      setBuysProduct(false);
+      setBuysCollection(false);
     }
   });
 
@@ -502,6 +518,7 @@ function Home() {
     }
   }
 `;
+
   //Buy X and get Y
   const buyYgetXProducts = gql`
     mutation {
@@ -510,19 +527,21 @@ function Home() {
           title: "${name}"
           startsAt: "${startsAt}"
           endsAt: "${endsAt}"
-          usesPerOrderLimit: ${parseFloat(limitValue)}
+          usageLimit: ${parseFloat(limitValue)}
           code: "${code}"
           customerSelection: { all: true }
           customerBuys: {
-            value: { amount: 100 }
+            value: { amount:  ${parseFloat(discountBuyAmount)} }
             items: {
-            products: {productsToAdd: ${JSON.stringify(productIds)}}
+            products: {productsToAdd: ${JSON.stringify(productBuysIds)}}
             }
           }
           customerGets: {
             value: {
               discountOnQuantity: {
-                quantity: "1"
+                quantity: ${
+                  discountQuantity ? JSON.stringify(discountQuantity) : 1
+                }
                 effect: { percentage:${parseFloat(discountValue)}}
               }
             }
@@ -569,19 +588,21 @@ function Home() {
           title: "${name}"
           startsAt: "${startsAt}"
           endsAt: "${endsAt}"
-          usesPerOrderLimit: ${parseFloat(limitValue)}
+          usageLimit: ${parseFloat(limitValue)}
           code: "${code}"
           customerSelection: { all: true }
           customerBuys: {
-            value: { amount: 100 }
+            value: { amount: ${parseFloat(discountBuyAmount)} }
             items: {
-            collections: {add: ${JSON.stringify(collectionIds)}}
+            collections: {add: ${JSON.stringify(collectionBuysIds)}}
             }
           }
           customerGets: {
             value: {
               discountOnQuantity: {
-                quantity: "1"
+                quantity: ${
+                  discountQuantity ? JSON.stringify(discountQuantity) : 1
+                }
                 effect: { percentage:${parseFloat(discountValue)}}
               }
             }
@@ -634,6 +655,16 @@ function Home() {
     setProductIds(prods);
     setCollectionIds([]);
   };
+  const handleCollectionBuysSelection = (items) => {
+    const coll = items.selection.map((item) => item.id);
+    setCollectionBuysIds(coll);
+    setProductBuysIds([]);
+  };
+  const handleProductBuysSelection = (items) => {
+    const prods = items.selection.map((item) => item.id);
+    setProductBuysIds(prods);
+    setCollectionBuysIds([]);
+  };
 
   const [
     handlePercentageSubmit,
@@ -666,7 +697,6 @@ function Home() {
   );
 
   if (error) {
-    console.log(error);
     return (
       <div className={styles.alertError}>
         Error occurred while processing your request . Try Again!
@@ -678,6 +708,7 @@ function Home() {
       </div>
     );
   }
+
   return (
     <div className={styles.HomeContainer}>
       <form
@@ -688,6 +719,7 @@ function Home() {
             (discountSelected === "percentage" && !endsAt) ||
             (discountSelected === "buyxgety" && !startsAt) ||
             (discountSelected === "buyxgety" && !endsAt) ||
+            (discountSelected === "buyxgety" && !discountValue) ||
             (discountSelected === "minimumAmount" && !startsAt) ||
             (discountSelected === "minimumAmount" && !endsAt) ||
             (discountSelected === "dollarAmount" && !startsAt) ||
@@ -700,11 +732,13 @@ function Home() {
         }}
       >
         <div className={styles.formGroup}>
-          {alertPass ? (
-            <div className={styles.alertSuccess}>Operation was successful</div>
+          {alertPass || data ? (
+            <div className={styles.alertSuccess}>
+              Discount code created successful
+            </div>
           ) : alertFail ? (
             <div className={styles.alertError}>
-              Error occurred while processing your request . Try Again!
+              Error occurred while processing your request. Try Again!
             </div>
           ) : formError ? (
             <div className={styles.alertError}>
@@ -769,12 +803,71 @@ function Home() {
               <option value="freeShipping">Free shipping</option>
             </select>
           </div>
+          {discountSelected === "buyxgety" ? (
+            <>
+              <div className={styles.inputWrapper}>
+                <label className={styles.discoutTypelbl}>
+                  Customer buys(Amount)
+                </label>
+                <input
+                  type="text"
+                  name="amount"
+                  placeholder="Value"
+                  className={styles.formInput}
+                  value={discountBuyAmount}
+                  onChange={(e) => setDiscountBuyAmount(e.target.value)}
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <div className={styles.inputWrapper}>
+                  <label>Apply on </label>
+                  <select
+                    name="customerbuysapplyon"
+                    size="1"
+                    disabled={
+                      discountSelected === "freeShipping" ? "disabled" : ""
+                    }
+                    className={styles.formInput}
+                    value={customerBuys}
+                    onChange={(e) => setCustomerBuys(e.target.value)}
+                  >
+                    <option value="appy_on">Apply on</option>
+                    <option value="buyscollection">Collection</option>
+                    <option value="buysproduct">Product</option>
+                  </select>
+                  {buyscollection ? (
+                    <ResourcePicker
+                      resourceType="Collection"
+                      open={buyscollection}
+                      onCancel={() => setCustomerBuys("appy_on")}
+                      onSelection={(items) => {
+                        handleCollectionBuysSelection(items);
+                      }}
+                    />
+                  ) : buysproduct ? (
+                    <ResourcePicker
+                      resourceType="Product"
+                      open={buysproduct}
+                      onCancel={() => setCustomerBuys("appy_on")}
+                      onSelection={(products) => {
+                        handleProductBuysSelection(products);
+                      }}
+                    />
+                  ) : (
+                    ""
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            ""
+          )}
           <div className={styles.inputWrapper}>
             <label className={styles.discoutTypelbl}>
               {discountSelected === "percentage"
                 ? "Percentage Discount (between 0.0 and 1.0)"
                 : discountSelected === "buyxgety"
-                ? "Customer Gets"
+                ? "Customer Gets (percentage-between 0.0 & 1.0)"
                 : discountSelected === "dollarAmount"
                 ? "Discount Amount"
                 : discountSelected === "minimumAmount"
@@ -792,6 +885,21 @@ function Home() {
               onChange={(e) => setDiscountValue(e.target.value)}
             />
           </div>
+          {discountSelected === "buyxgety" ? (
+            <div className={styles.inputWrapper}>
+              <label className={styles.discoutTypelbl}>Quantity</label>
+              <input
+                type="text"
+                name="amount"
+                placeholder="Value"
+                className={styles.formInput}
+                value={discountQuantity}
+                onChange={(e) => setDiscountQuantity(e.target.value)}
+              />
+            </div>
+          ) : (
+            ""
+          )}
           <div className={styles.inputWrapperCheckbox}>
             <input
               type="checkbox"
